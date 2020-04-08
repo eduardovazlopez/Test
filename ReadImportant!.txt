@@ -1,0 +1,6 @@
+Note:
+The multiplexer located in the circuit allows the current to be varied between 1 and 50 mA, depending on the selected resistor. During the simulation execution, the multiplexer is not allowing current to flow to the selected resistor. That is why there is a resistor bypassing the multiplexer for the sole purpose of showing the circuit working, but this connection is wrong.
+
+The steps to operate the system are as follows:
+1. Insert the desired frequency using the keyboard. Since the maximum value is 100 Hz, only 3 digits are allowed to be pressed. To insert, for example, 85 Hz you must press '0' + '8' + '5' and to insert 7 Hz you must press '0' + '0' + '7'.
+2. Select the desired current by pressing the push button.
