@@ -1,0 +1,160 @@
+C51 COMPILER V9.60.0.0   MYPROGRAM                                                         04/05/2020 01:19:49 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MYPROGRAM
+OBJECT MODULE PLACED IN .\Objects\MyProgram.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE MyProgram.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings
+                    -\MyProgram.lst) TABS(2) OBJECT(.\Objects\MyProgram.obj)
+
+line level    source
+
+   1          #include <REGX51.H>
+   2          #include <stdio.h>
+   3          
+   4          #define frequencyOutputPin P3_0
+   5          #define baseDeTiempo  55535
+   6          #define fixedFrequencyValue 2000
+   7          
+   8          #define RowA P2_3     //RowA
+   9          #define RowB P2_4     //RowB
+  10          #define RowC P2_5     //RowC
+  11          #define RowD P2_6     //RowD
+  12          
+  13          #define C1 P2_2     //Column1
+  14          #define C2 P2_1     //Column2
+  15          #define C3 P2_0     //Column3
+  16          
+  17          //Variables globales
+  18          unsigned int timer0Ticks;
+  19          unsigned int frequencyValue;
+  20          unsigned char resistanceCounter;
+  21          
+  22          unsigned char ScanKeyboard()
+  23          {
+  24   1        P2 = 255;
+  25   1        
+  26   1        C1 = 0;
+  27   1        C2 = 1;
+  28   1        C3 = 1;
+  29   1        
+  30   1        if (RowA == 0) { while (RowA==0); return 1; }
+  31   1        if (RowB == 0) { while (RowB==0); return 4; }
+  32   1        if (RowC == 0) { while (RowC==0); return 7; }
+  33   1        //* Dont care.
+  34   1        
+  35   1        C1 = 1;
+  36   1        C2 = 0;
+  37   1        C3 = 1;
+  38   1        
+  39   1        if (RowA == 0) { while (RowA==0); return 2; }
+  40   1        if (RowB == 0) { while (RowB==0); return 5; }
+  41   1        if (RowC == 0) { while (RowC==0); return 8; }
+  42   1        if (RowD == 0) { while (RowD==0); return 0; }   
+  43   1        
+  44   1        C1 = 1;
+  45   1        C2 = 1;
+  46   1        C3 = 0;
+  47   1        
+  48   1        if (RowA == 0) { while (RowA==0); return 3; }
+  49   1        if (RowB == 0) { while (RowB==0); return 6; }
+  50   1        if (RowC == 0) { while (RowC==0); return 9; }
+  51   1        //# Dont care.
+  52   1        
+  53   1        return 10;
+  54   1      }
+C51 COMPILER V9.60.0.0   MYPROGRAM                                                         04/05/2020 01:19:49 PAGE 2   
+
+  55          
+  56          void Timer0Init()
+  57          {
+  58   1        timer0Ticks = 0;
+  59   1        TR0 = 0;      //Detiene el Timer0.
+  60   1        TMOD &= 0xF0; //Limpia  solo la parte baja de TMOD correspondiente a Timer0.
+  61   1        TMOD |= 2;
+  62   1        
+  63   1        TL0 = 0;
+  64   1        TH0 = 0;
+  65   1        
+  66   1        PT0 = 0;      //Prioridad baja.
+  67   1        TR0 = 1;      //Habilita el Timer.
+  68   1        ET0 = 1;      //Habilita la interrupción por desbordamiento del Timer0.
+  69   1      }
+  70          
+  71          void Int0Init()
+  72          {
+  73   1        IT0 = 1;    //Activado por transciente negativo.
+  74   1        EX0 = 1;
+  75   1      }
+  76          
+  77          void Timer0_isr() interrupt TF0_VECTOR
+  78          { 
+  79   1        ET0 = 0;
+  80   1        timer0Ticks++;
+  81   1        
+  82   1        if(timer0Ticks == fixedFrequencyValue/frequencyValue)
+  83   1        {
+  84   2          frequencyOutputPin = !frequencyOutputPin;
+  85   2          timer0Ticks = 0;
+  86   2        }
+  87   1        ET0 = 1;
+  88   1      }
+  89          
+  90          void ChangeResistance() interrupt IE0_VECTOR
+  91          {
+  92   1        EX0 = 0;
+  93   1        if(resistanceCounter == 10)
+  94   1          resistanceCounter = 0;
+  95   1        else
+  96   1          resistanceCounter++;
+  97   1        
+  98   1        P1 = resistanceCounter;
+  99   1        EX0 = 1;
+ 100   1      }
+ 101          
+ 102          
+ 103          void main()
+ 104          {
+ 105   1        unsigned char x, y = 10;
+ 106   1        
+ 107   1        IE = 0;     //Establece estado inicial de las interrupciones.
+ 108   1        frequencyOutputPin = 0;
+ 109   1        frequencyValue = 0;
+ 110   1        resistanceCounter = 0;
+ 111   1        P1 = 0;
+ 112   1        
+ 113   1        for(x = 0; x < 3; x++)
+ 114   1        {
+ 115   2          while(y == 10)
+ 116   2            y = ScanKeyboard();
+C51 COMPILER V9.60.0.0   MYPROGRAM                                                         04/05/2020 01:19:49 PAGE 3   
+
+ 117   2          
+ 118   2          frequencyValue = (frequencyValue*10) + y;
+ 119   2          y = 10; 
+ 120   2        }
+ 121   1        
+ 122   1        if(frequencyValue > 100)
+ 123   1          frequencyValue = 100;
+ 124   1        
+ 125   1        Timer0Init();
+ 126   1        Int0Init();
+ 127   1        EA = 1;     //Habilita las interrupciones globales
+ 128   1        
+ 129   1        while(1)
+ 130   1        {}
+ 131   1        
+ 132   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    331    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
